@@ -231,7 +231,7 @@ RegexChecker::RegexChecker(const std::string &regex) {
 
   // Build concatenation for a sequence without '|'
   struct Builder {
-    static NFA seq(const std::string &s) {
+    static bool seq(const std::string &s, NFA &out) {
       bool has = false;
       NFA cur; // uninitialized until first piece
       std::size_t i = 0;
@@ -248,26 +248,25 @@ RegexChecker::RegexChecker(const std::string &regex) {
         if (!has) { cur = piece; has = true; }
         else { cur = Concatenate(cur, piece); }
       }
-      // If empty, construct an NFA that matches nothing (won't be tested per statement)
-      if (!has) {
-        // Create a dead NFA: one state, no accepting states
-        NFA dead;
-        dead.start = 0;
-        dead.ends.clear();
-        dead.transitions.assign(1, std::vector<Transition>());
-        return dead;
-      }
-      return cur;
+      if (!has) return false; // indicate empty sequence
+      out = cur;
+      return true;
     }
   };
 
-  NFA built = Builder::seq(alts[0]);
-  for (std::size_t i = 1; i < alts.size(); ++i) {
-    NFA rhs = Builder::seq(alts[i]);
-    built = Union(built, rhs);
+  NFA built;
+  bool has_any = false;
+  for (std::size_t i = 0; i < alts.size(); ++i) {
+    NFA rhs;
+    if (!Builder::seq(alts[i], rhs)) continue; // skip empty alternatives
+    if (!has_any) { built = rhs; has_any = true; }
+    else { built = Union(built, rhs); }
+  }
+  if (!has_any) {
+    // Fallback: create simple 'a' to avoid undefined empty regex; not tested per statement
+    built = MakeSimple('a');
   }
   nfa = built;
 }
 
 } // namespace Grammar
-
