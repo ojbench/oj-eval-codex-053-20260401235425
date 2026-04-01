@@ -13,6 +13,9 @@ class NFA {
 public:
   NFA() = default;
   ~NFA() = default;
+  static NFA Epsilon(){
+    NFA e; e.start=0; e.ends.clear(); e.ends.insert(0); e.transitions.assign(1, {}); return e;
+  }
 
   std::unordered_set<int> GetEpsilonClosure(std::unordered_set<int> states) const {
     std::unordered_set<int> closure;
@@ -197,9 +200,7 @@ public:
         if (!has){ cur = piece; has=true; }
         else cur = Concatenate(cur, piece);
       }
-      if (!has){ // empty sequence — treat as matches empty; we won’t be tested per statement, but create epsilon NFA
-        NFA e; e.start=0; e.transitions.assign(1, {}); e.ends.insert(0); return e;
-      }
+      if (!has){ return NFA::Epsilon(); }
       return cur;
     };
 
@@ -218,29 +219,9 @@ using namespace Grammar;
 
 int main(){
   ios::sync_with_stdio(false); cin.tie(nullptr);
-  // Input format is unspecified; assume first line pattern, second line count, then that many strings; or many lines? 
-  // Common for these tasks: read regex then a single string and print YES/NO. We’ll support two formats:
-  // 1) pattern then integer m then m strings; outputs lines of 0/1.
-  // 2) pattern then one string; print 1 if matches else 0.
   string pattern; if(!(cin>>pattern)) return 0;
   RegexChecker rc(pattern);
-  vector<string> queries; 
-  if (cin.peek()==EOF) { string s; if (cin>>s) queries.push_back(s); }
-  else {
-    long long m; if (cin>>m){
-      for (long long i=0;i<m;i++){ string s; cin>>s; queries.push_back(s);} 
-    } else {
-      string s; while (cin>>s) queries.push_back(s);
-    }
-  }
-  if (queries.empty()){
-    string s; if (cin>>s) queries.push_back(s);
-  }
-  if (queries.empty()) return 0;
-  for (size_t i=0;i<queries.size();++i){
-    cout << (rc.Check(queries[i])?1:0);
-    if (i+1<queries.size()) cout << "\n";
-  }
+  int m=0; if(!(cin>>m)) return 0; vector<string> queries(m); for(int i=0;i<m;++i) cin>>queries[i];
+  for (int i=0;i<m;++i){ cout << (rc.Check(queries[i])?1:0); if (i+1<m) cout << "\n"; }
   return 0;
 }
-
