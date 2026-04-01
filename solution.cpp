@@ -33,7 +33,27 @@ public:
   ~NFA() = default;
 
   std::unordered_set<int>
-  GetEpsilonClosure(std::unordered_set<int> states) const;
+  GetEpsilonClosure(std::unordered_set<int> states) const {
+    std::unordered_set<int> closure;
+    std::queue<int> q;
+    for (const auto &s : states) {
+      if (closure.find(s) != closure.end()) continue;
+      closure.insert(s);
+      q.push(s);
+    }
+    while (!q.empty()) {
+      int u = q.front(); q.pop();
+      for (const auto &tr : transitions[u]) {
+        if (tr.type == TransitionType::Epsilon) {
+          if (closure.find(tr.to) == closure.end()) {
+            closure.insert(tr.to);
+            q.push(tr.to);
+          }
+        }
+      }
+    }
+    return closure;
+  }
 
   std::unordered_set<int> Advance(std::unordered_set<int> current_states,
                                   char character) const;
